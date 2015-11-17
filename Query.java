@@ -3,6 +3,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import java.io.FileInputStream;
 
@@ -32,6 +33,16 @@ public class Query {
                      + "FROM movie_directors x, directors y "
                      + "WHERE x.mid = ? and x.did = y.id";
     private PreparedStatement _director_mid_statement;
+    
+    private String _actor_mid_sql = "SELECT y.* "
+                     + "FROM casts x, actor y "
+                     + "WHERE x.mid = ? and x.pid = y.id";
+    private PreparedStatement _actor_mid_statement;
+
+     private String _renter_mid_sql = "SELECT aid "
+                     + "FROM Rentals r "
+                     + "WHERE r.mid = ?";
+    private PreparedStatement _renter_mid_statement;
 
     /* uncomment, and edit, after your create your own customer database */
     
@@ -91,6 +102,8 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
+        _actor_mid_statement = _imdb.prepareStatement(_actor_mid_sql);
+        _renter_mid_statement = _customer.prepareStatement(_renter_mid_sql);
 
         /* uncomment after you create your customers database */
         
@@ -189,8 +202,41 @@ public class Query {
                         + " " + director_set.getString(2));
             }
             director_set.close();
-            /* now you need to retrieve the actors, in the same manner */
+          
+             /* now you need to retrieve the actors, in the same manner */
+
+            _actor_mid_statement.clearParameters();
+            _actor_mid_statement.setInt(1, mid);
+            ResultSet actor_set = _actor_mid_statement.executeQuery();
+            while (actor_set.next()) {
+                System.out.println("\t\tActor: " + actor_set.getString(3)
+                        + " " + actor_set.getString(2));
+            }
+            actor_set.close();
+
             /* then you have to find the status: of "AVAILABLE" "YOU HAVE IT", "UNAVAILABLE" */
+
+            _renter_mid_statement.clearParameters();
+            _renter_mid_statement.setInt(1, mid);
+            ResultSet renter_set = _renter_mid_statement.executeQuery();
+
+            int renterID = -1;
+
+            //if movie is rented out then get matching customer id
+            if (renter_set.next())
+                renterID = renter_set.getInt(1);
+
+            System.out.println("Is the movie available?");
+
+            if (renterID == -1)
+                System.out.println("Movie is Available for rent!");
+            else
+                if (renterID == id)
+                    System.out.println("You have the movie out silly!");
+                else
+                    System.out.println("Sorry but the movie is out for rent!");
+
+            renter_set.close();
         }
         System.out.println();
     }
