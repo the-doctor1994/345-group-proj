@@ -34,7 +34,6 @@ public class Query {
     private PreparedStatement _director_mid_statement;
 
     /* uncomment, and edit, after your create your own customer database */
-    /*
     private String _customer_login_sql = "SELECT * FROM customers WHERE login = ? and password = ?";
     private PreparedStatement _customer_login_statement;
 
@@ -46,7 +45,23 @@ public class Query {
 
     private String _rollback_transaction_sql = "ROLLBACK TRANSACTION";
     private PreparedStatement _rollback_transaction_statement;
-     */
+
+    private String _customer_movie_return_sql = "UPDATE MovieRentals SET cid=NULL, status='closed' WHERE cid=? AND mid=?;";
+
+    private PreparedStatement _customer_movie_return_statement;
+
+    private String _customer_movie_check_sql = "SELECT count(*) FROM MovieRentals WHERE cid = ? AND status = 'open';";
+
+    private PreparedStatement _customer_movie_check_statement;
+
+    private String _customer_plan_check_sql = "SELECT r.max_movies FROM RentalPlans r INNER JOIN Customers c on c.pid = r.pid WHERE c.cid = ?";
+
+    private PreparedStatement _customer_movie_check_statement;
+
+    private String _customer_movie_rent_sql = "INSERT INTO MovieRentals VALUES (?,?,'open')";
+
+    private PreparedStatement _customer_movie_rent_statement;
+
 
     public Query() {
     }
@@ -92,14 +107,18 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
+	_customer_movie_return_statement = imdb.prepareStatement(_customer_movie_return_sql);
+	_customer_plan_check_statement = imdb.prepareStatement(_customer_plan_check_sql);
+	_customer_movie_check_statement = imdb.prepareStatement(_customer_movie_check_sql);
+	_customer_movie_rent_statement = imdb.prepareStatement(_customer_movie_rent_sql);
 
         /* uncomment after you create your customers database */
-        /*
+
         _customer_login_statement = _customer_db.prepareStatement(_customer_login_sql);
         _begin_transaction_read_write_statement = _customer_db.prepareStatement(_begin_transaction_read_write_sql);
         _commit_transaction_statement = _customer_db.prepareStatement(_commit_transaction_sql);
         _rollback_transaction_statement = _customer_db.prepareStatement(_rollback_transaction_sql);
-         */
+
 
         /* add here more prepare statements for all the other queries you need */
         /* . . . . . . */
@@ -210,12 +229,35 @@ public class Query {
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
-        /* rend the movie mid to the customer cid */
-        /* remember to enforce consistency ! */
+	_begin_transaction_read_write_statement.execute();
+	_customer_movie_check_statement.clearParamenters();
+	_customer_movie_check_statement.setInt(1, cid);
+	ResultSet check_movies = _customer_movie_check_statement.executeQuery();
+	check.first();
+	int rented = check_movies.getInt(1);
+	_customer_plan_check_statement.clearParamenters();
+	_customer_plan_check_statement.setInt(1, cid);
+	ResultSet check_plan = _customer_plan_check_statement.executeQuery();
+	check.first();
+	int max_movies = check_plan.getInt(1);
+	if(rented < max_movies){
+	    _customer_movie_rent_statement.clearParameters();
+	    _customer_movie_rent_statement.setInt(1,mid);
+	    _customer_movie_rent_statement.setInt(2,cid);
+	    _customer_movie_rent_statement.execute();
+	    _commit_transaction_statement.execute();
+	}
+	else{
+	    _rollback_transaction_statement.execute();
+	}
+	
     }
 
     public void transaction_return(int cid, int mid) throws Exception {
-        /* return the movie mid by the customer cid */
+	_customer_movie_return_statement.clearParameters();
+	_customer_movie_return_statement.setInt(1, cid);
+	_customer_movie_return_statement.setInt(2, mid);
+	_customer_movie_return_statement.execute();
     }
 
     public void transaction_fast_search(int cid, String movie_title)
