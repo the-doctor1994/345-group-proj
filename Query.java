@@ -35,7 +35,7 @@ public class Query {
 
     /* uncomment, and edit, after your create your own customer database */
     
-    private String _customer_login_sql = "SELECT * FROM accounts WHERE login = ? and password = ?";
+    private String _customer_login_sql = "SELECT * FROM accounts WHERE username = ? and password = ?";
     private PreparedStatement _customer_login_statement;
 
     private String _begin_transaction_read_write_sql = "BEGIN TRANSACTION READ WRITE";
@@ -138,7 +138,7 @@ public class Query {
 
     /**********************************************************/
     /* login transaction: invoked only once, when the app is started  */
-    public int transaction_login(String name, String password) throws Exception {
+    public int transaction_login(String username, String password) throws Exception {
         /* authenticates the user, and returns the user id, or -1 if authentication fails */
 
         /* Uncomment after you create your own customers database */
@@ -149,7 +149,7 @@ public class Query {
         _customer_login_statement.setString(1,username);
         _customer_login_statement.setString(2,password);
         ResultSet cid_set = _customer_login_statement.executeQuery();
-        if (cid_set.next()) cid = cid_set.getInt(1);
+        if (cid_set.next()) cid = 1;
         else cid = -1;
         return(cid);
          
