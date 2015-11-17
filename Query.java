@@ -47,19 +47,15 @@ public class Query {
     private PreparedStatement _rollback_transaction_statement;
 
     private String _customer_movie_return_sql = "UPDATE MovieRentals SET cid=NULL, status='closed' WHERE cid=? AND mid=?;";
-
     private PreparedStatement _customer_movie_return_statement;
 
     private String _customer_movie_check_sql = "SELECT count(*) FROM MovieRentals WHERE cid = ? AND status = 'open';";
-
     private PreparedStatement _customer_movie_check_statement;
 
     private String _customer_plan_check_sql = "SELECT r.max_movies FROM RentalPlans r INNER JOIN Customers c on c.pid = r.pid WHERE c.cid = ?";
-
-    private PreparedStatement _customer_movie_check_statement;
+    private PreparedStatement _customer_plan_check_statement;
 
     private String _customer_movie_rent_sql = "INSERT INTO MovieRentals VALUES (?,?,'open')";
-
     private PreparedStatement _customer_movie_rent_statement;
 
 
@@ -107,10 +103,10 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
-	_customer_movie_return_statement = imdb.prepareStatement(_customer_movie_return_sql);
-	_customer_plan_check_statement = imdb.prepareStatement(_customer_plan_check_sql);
-	_customer_movie_check_statement = imdb.prepareStatement(_customer_movie_check_sql);
-	_customer_movie_rent_statement = imdb.prepareStatement(_customer_movie_rent_sql);
+	_customer_movie_return_statement = _imdb.prepareStatement(_customer_movie_return_sql);
+	_customer_plan_check_statement = _imdb.prepareStatement(_customer_plan_check_sql);
+	_customer_movie_check_statement = _imdb.prepareStatement(_customer_movie_check_sql);
+	_customer_movie_rent_statement = _imdb.prepareStatement(_customer_movie_rent_sql);
 
         /* uncomment after you create your customers database */
 
@@ -230,15 +226,15 @@ public class Query {
 
     public void transaction_rent(int cid, int mid) throws Exception {
 	_begin_transaction_read_write_statement.execute();
-	_customer_movie_check_statement.clearParamenters();
+	_customer_movie_check_statement.clearParameters();
 	_customer_movie_check_statement.setInt(1, cid);
 	ResultSet check_movies = _customer_movie_check_statement.executeQuery();
-	check.first();
+	check_movies.first();
 	int rented = check_movies.getInt(1);
-	_customer_plan_check_statement.clearParamenters();
+	_customer_plan_check_statement.clearParameters();
 	_customer_plan_check_statement.setInt(1, cid);
 	ResultSet check_plan = _customer_plan_check_statement.executeQuery();
-	check.first();
+	check_plan.first();
 	int max_movies = check_plan.getInt(1);
 	if(rented < max_movies){
 	    _customer_movie_rent_statement.clearParameters();
