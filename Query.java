@@ -231,7 +231,7 @@ public class Query {
             if (renterID == -1)
                 System.out.println("Movie is Available for rent!");
             else
-                if (renterID == id)
+                if (renterID == cid)
                     System.out.println("You have the movie out silly!");
                 else
                     System.out.println("Sorry but the movie is out for rent!");
