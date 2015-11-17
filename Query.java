@@ -103,7 +103,7 @@ public class Query {
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
         _actor_mid_statement = _imdb.prepareStatement(_actor_mid_sql);
-        _renter_mid_statement = _customer.prepareStatement(_renter_mid_sql);
+        _renter_mid_statement = _customer_db.prepareStatement(_renter_mid_sql);
 
         /* uncomment after you create your customers database */
         
