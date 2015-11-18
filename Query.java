@@ -149,6 +149,7 @@ public class Query {
         _customer_db = DriverManager.getConnection(customerUrl, // database
                 postgreSQLUser, // user
                 postgreSQLPassword); // password
+                
     }
 
     public void closeConnection() throws Exception {
@@ -295,7 +296,7 @@ public class Query {
 
         System.out.println( "Name: " + 
                             helper_compute_customer_name(cid) + 
-                            " Open Rental slots: " + 
+                            "\nOpen Rental slots: " + 
                             helper_compute_remaining_rentals(cid)
         );
     }
@@ -371,7 +372,7 @@ public class Query {
     public void transaction_choose_plan(int cid, String pid) throws Exception {
         /* updates the customer's plan to pid: UPDATE accounts SET plan = ? WHERE id = ? */
         /* remember to enforce consistency ! */
-        _begin_transaction_read_write_statement.executeQuery();
+        _begin_transaction_read_write_statement.executeUpdate();
         int required_min = 3;
         _all_plans_statement.clearParameters();
         ResultSet plans_set = _all_plans_statement.executeQuery();
@@ -391,10 +392,10 @@ public class Query {
             _customer_change_plan_statement.clearParameters();
             _customer_change_plan_statement.setString(1,pid);
             _customer_change_plan_statement.setInt(2,cid);
-            _customer_change_plan_statement.executeQuery();
-            _commit_transaction_statement.executeQuery();
+            _customer_change_plan_statement.executeUpdate();
+            _commit_transaction_statement.executeUpdate();
         }
-        else _rollback_transaction_statement.executeQuery();
+        else _rollback_transaction_statement.executeUpdate();
         
     }
 
