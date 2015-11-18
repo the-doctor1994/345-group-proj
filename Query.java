@@ -39,7 +39,7 @@ public class Query {
                      + "WHERE x.mid = ? and x.pid = y.id";
     private PreparedStatement _actor_mid_statement;
 
-     private String _renter_mid_sql = "SELECT aid "
+    private String _renter_mid_sql = "SELECT aid "
                      + "FROM Rentals r "
                      + "WHERE r.mid = ?";
     private PreparedStatement _renter_mid_statement;
