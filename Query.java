@@ -44,6 +44,18 @@ public class Query {
                      + "WHERE r.mid = ?";
     private PreparedStatement _renter_mid_statement;
 
+    private String _director_fast_sql = "SELECT x.id, z.* "
+                     + "FROM movie x, movie_directors y, directors z "
+                     + "WHERE upper(x.name) like upper(?) and x.id = y.mid and y.did = z.id "
+                     + "ORDER BY x.id";
+    private PreparedStatement _director_fast_statement;
+
+    private String _actor_fast_sql = "SELECT x.id, z.* "
+                     + "FROM movie x, casts y, actor z "
+                     + "WHERE upper(x.name) like upper(?) and x.id = y.mid and y.pid = z.id "
+                     + "ORDER BY x.id";
+    private PreparedStatement _actor_fast_statement;    
+
     /* uncomment, and edit, after your create your own customer database */
    
     private String _customer_login_sql = "SELECT * FROM accounts WHERE username = ? AND password = ?";
@@ -194,12 +206,33 @@ public class Query {
 
     public boolean helper_check_movie(int mid) throws Exception {
         /* is mid a valid movie id ? you have to figure out  */
-        return true;
+         /* is plan_id a valid plan id ?  you have to figure out */
+
+        boolean valid;
+
+        _movie_statement.clearParameters();
+        _movie_statement.setInt(1,mid);
+        ResultSet movie_set = _movie_statement.executeQuery();
+        if (movie_set.next()) valid = true;
+        else valid = false;
+        movie_set.close();
+
+        return valid;
     }
 
     private int helper_who_has_this_movie(int mid) throws Exception {
         /* find the customer id (cid) of whoever currently rents the movie mid; return -1 if none */
-        return (77);
+
+        int cid;
+
+        _who_has_this_movie_statement.clearParameters();
+        _who_has_this_movie_statement.setInt(1,mid);
+        ResultSet who_set = _who_has_this_movie_statement.executeQuery();
+        if (who_set.next()) cid = who_set.getInt(1);
+        else cid = -1;
+        who_set.close();
+        System.out.println("Customer: " + cid);
+        return (cid);
     }
 
     /**********************************************************/
@@ -223,13 +256,22 @@ public class Query {
     }
 
     public void transaction_personal_data(int cid) throws Exception {
-        /* println the customer's personal data: name, and plan number */
-        
-        System.out.println( "Name: " + 
-                            helper_compute_customer_name(cid) + 
-                            "\nOpen Rental slots: " + 
-                            helper_compute_remaining_rentals(cid)
-        );
+           /* println the customer's personal data: name, and plan number */
+
+        _customer_data_statement.clearParameters();
+        _customer_data_statement.setInt(1,cid);
+        ResultSet customer_set = _customer_data_statement.executeQuery();
+        if (customer_set.next()) {
+            System.out.println("\t\tCustomer: " + customer_set.getString(1)
+                    + " " + customer_set.getString(2));
+            System.out.println("\t\tPlan: " + customer_set.getString(3)
+                    + "   " + customer_set.getInt(4) + " movies maximum"
+                    + "   Fee $" + customer_set.getDouble(5));
+            System.out.println("\t\t " + helper_compute_remaining_rentals(cid)
+                    + " rentals available");
+        }
+        customer_set.close();
+        System.out.println();
         
     }
 
@@ -346,6 +388,23 @@ public class Query {
     
     public void transaction_list_user_rentals(int cid) throws Exception {
         /* TODO: println all movies rented by the current user*/
+        
+        _list_rentals_statement.clearParameters();
+        _list_rentals_statement.setInt(1,cid);
+        ResultSet rentals_set = _list_rentals_statement.executeQuery();
+
+        while (rentals_set.next()) {
+            int mid = rentals_set.getInt(1);
+            _movie_statement.clearParameters();
+            _movie_statement.setInt(1,mid);
+            ResultSet movie_set = _movie_statement.executeQuery();
+            System.out.println(" NAME: "
+                    + movie_set.getString(2) + "  YEAR: "
+                    + movie_set.getString(3));
+            movie_set.close();
+        }
+        rentals_set.close();
+        System.out.println();
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
@@ -393,30 +452,30 @@ public class Query {
            Then merge-joins the three answer sets */
 
         /* set the first (and single) '?' parameter */
-        _search_statement.clearParameters();
+      _search_statement.clearParameters();
         _search_statement.setString(1, '%' + movie_title + '%');
         ResultSet movie_set = _search_statement.executeQuery();
 
         /* retrieve directors */
-        /*_director_fast_statement.clearParameters();
+        _director_fast_statement.clearParameters();
         _director_fast_statement.setString(1, '%' + movie_title + '%');
-        ResultSet director_set = _director_fast_statement.executeQuery();*/
+        ResultSet director_set = _director_fast_statement.executeQuery();
 
  
         /* retrieve the actors */
-        /*_actor_fast_statement.clearParameters();
+        _actor_fast_statement.clearParameters();
         _actor_fast_statement.setString(1, '%' + movie_title + '%');
-        ResultSet actor_set = _actor_fast_statement.executeQuery();*/
+        ResultSet actor_set = _actor_fast_statement.executeQuery();
 
-        /*director_set.next();
-        actor_set.next();*/
+        director_set.next();
+        actor_set.next();
 
-        /*while (movie_set.next()) {
+        while (movie_set.next()) {
             int mid = movie_set.getInt(1);
             System.out.println("ID: " + mid + " NAME: "
                     + movie_set.getString(2) + " YEAR: "
                     + movie_set.getString(3));
-
+        
             do {
                 if (director_set.getInt(1) == mid) {
                     System.out.println("\t\tDirector: " + director_set.getString(4)
@@ -434,12 +493,12 @@ public class Query {
                 }
                 else {
                     break;
-                }
+                } 
             } while (actor_set.next());
         }
         movie_set.close();
         director_set.close();
         actor_set.close();
-        System.out.println();*/
+        System.out.println();
     }
 }
