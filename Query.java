@@ -225,35 +225,40 @@ public class Query {
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
-	_begin_transaction_read_write_statement.execute();
-	_customer_movie_check_statement.clearParameters();
-	_customer_movie_check_statement.setInt(1, cid);
-	ResultSet check_movies = _customer_movie_check_statement.executeQuery();
-	check_movies.first();
-	int rented = check_movies.getInt(1);
-	_customer_plan_check_statement.clearParameters();
-	_customer_plan_check_statement.setInt(1, cid);
-	ResultSet check_plan = _customer_plan_check_statement.executeQuery();
-	check_plan.first();
-	int max_movies = check_plan.getInt(1);
-	if(rented < max_movies){
-	    _customer_movie_rent_statement.clearParameters();
-	    _customer_movie_rent_statement.setInt(1,mid);
-	    _customer_movie_rent_statement.setInt(2,cid);
-	    _customer_movie_rent_statement.execute();
+	if(helper_check_movie(mid)){
+	    _begin_transaction_read_write_statement.execute();
+	    _customer_movie_check_statement.clearParameters();
+	    _customer_movie_check_statement.setInt(1, cid);
+	    ResultSet check_movies = _customer_movie_check_statement.executeQuery();
+	    check_movies.first();
+	    int rented = check_movies.getInt(1);
+	    _customer_plan_check_statement.clearParameters();
+	    _customer_plan_check_statement.setInt(1, cid);
+	    ResultSet check_plan = _customer_plan_check_statement.executeQuery();
+	    check_plan.first();
+	    int max_movies = check_plan.getInt(1);
+	    if(rented < max_movies){
+		_customer_movie_rent_statement.clearParameters();
+		_customer_movie_rent_statement.setInt(1,mid);
+		_customer_movie_rent_statement.setInt(2,cid);
+		_customer_movie_rent_statement.execute();
+		_commit_transaction_statement.execute();
+	    }
+	    else{
+		_rollback_transaction_statement.execute();
+	    }
+	    
+	}
+    }
+    public void transaction_return(int cid, int mid) throws Exception {
+	if(helper_check_movie(mid) && (helper_who_has_this_movie(mid) == cid)){
+	    _begin_transaction_read_write_statement.execute();
+	    _customer_movie_return_statement.clearParameters();
+	    _customer_movie_return_statement.setInt(1, cid);
+	    _customer_movie_return_statement.setInt(2, mid);
+	    _customer_movie_return_statement.execute();
 	    _commit_transaction_statement.execute();
 	}
-	else{
-	    _rollback_transaction_statement.execute();
-	}
-	
-    }
-
-    public void transaction_return(int cid, int mid) throws Exception {
-	_customer_movie_return_statement.clearParameters();
-	_customer_movie_return_statement.setInt(1, cid);
-	_customer_movie_return_statement.setInt(2, mid);
-	_customer_movie_return_statement.execute();
     }
 
     public void transaction_fast_search(int cid, String movie_title)
