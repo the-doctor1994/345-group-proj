@@ -302,6 +302,58 @@ public class Query {
            Needs to run three SQL queries: (a) movies, (b) movies join directors, (c) movies join actors
            Answers are sorted by mid.
            Then merge-joins the three answer sets */
+
+        /* set the first (and single) '?' parameter */
+        _search_statement.clearParameters();
+        _search_statement.setString(1, '%' + movie_title + '%');
+        ResultSet movie_set = _search_statement.executeQuery();
+
+        /* retrieve directors */
+        _director_fast_statement.clearParameters();
+        _director_fast_statement.setString(1, '%' + movie_title + '%');
+        ResultSet director_set = _director_fast_statement.executeQuery();
+
+ 
+        /* retrieve the actors */
+        _actor_fast_statement.clearParameters();
+        _actor_fast_statement.setString(1, '%' + movie_title + '%');
+        ResultSet actor_set = _actor_fast_statement.executeQuery();
+
+        director_set.next();
+        actor_set.next();
+
+        while (movie_set.next()) {
+            int mid = movie_set.getInt(1);
+            System.out.println("ID: " + mid + " NAME: "
+                    + movie_set.getString(2) + " YEAR: "
+                    + movie_set.getString(3));
+
+            do {
+                if (director_set.getInt(1) == mid) {
+                    System.out.println("\t\tDirector: " + director_set.getString(4)
+                            + " " + director_set.getString(3));
+                }
+                else {
+                    break;
+                }
+            } while (director_set.next());
+
+            do {
+                if (actor_set.getInt(1) == mid) {
+                    System.out.println("\t\tActor: " + actor_set.getString(4)
+                            + " " + actor_set.getString(3));
+                }
+                else {
+                    break;
+                }
+            } while (actor_set.next());
+        }
+        movie_set.close();
+        director_set.close();
+        actor_set.close();
+        System.out.println();
     }
+
+}
 
 }
