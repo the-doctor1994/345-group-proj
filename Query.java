@@ -144,8 +144,10 @@ public class Query {
         _current_rentals_statement.clearParameters();
         _current_rentals_statement.setInt(1,cid);
         ResultSet rentals_num_set = _current_rentals_statement.executeQuery();
+        maxrent_set.next();
         int max = maxrent_set.getInt(1);
-        int out = rentals_num_set.getInt(1);
+        int out = 0;
+        if (rentals_num_set.next()) out = rentals_num_set.getInt(1);
         return (max - out);
     }
 
@@ -154,6 +156,7 @@ public class Query {
         _customer_info_statement.clearParameters();
         _customer_info_statement.setInt(1,cid);
         ResultSet info_set = _customer_info_statement.executeQuery();
+        info_set.next();
         return (info_set.getString(1) + " " + info_set.getString(2));
     }
 
