@@ -430,11 +430,11 @@ public class Query {
             check_plan.first();
             int max_movies = check_plan.getInt(1);
             if(rented < max_movies){
-            _customer_movie_rent_statement.clearParameters();
-            _customer_movie_rent_statement.setInt(1,mid);
-            _customer_movie_rent_statement.setInt(2,cid);
-            _customer_movie_rent_statement.execute();
-            _commit_transaction_statement.execute();
+		_customer_movie_rent_statement.clearParameters();
+		_customer_movie_rent_statement.setInt(1,mid);
+		_customer_movie_rent_statement.setInt(2,cid);
+		_customer_movie_rent_statement.execute();
+		_commit_transaction_statement.execute();
             }
             else{
 		_rollback_transaction_statement.execute();
