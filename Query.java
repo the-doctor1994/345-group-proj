@@ -180,16 +180,17 @@ public class Query {
         /* add here more prepare statements for all the other queries you need */
         /* . . . . . . */
         
+        _customer_data_statement = _customer_db.prepareStatement(_customer_data_sql);
         _customer_info_statement = _customer_db.prepareStatement(_customer_info_sql);
         _plan_maxrent_statement = _customer_db.prepareStatement(_plan_maxrent_sql);
         _current_rentals_statement = _customer_db.prepareStatement(_current_rentals_sql);
         _all_plans_statement = _customer_db.prepareStatement(_all_plans_sql);
         _customer_change_plan_statement = _customer_db.prepareStatement(_customer_change_plan_sql);
-	_customer_movie_rental_archive_statement = _customer_db.prepareStatement(_customer_movie_rental_archive_sql);
-	_customer_movie_return_statement = _customer_db.prepareStatement(_customer_movie_return_sql);
-	_customer_movie_check_statement = _customer_db.prepareStatement(_customer_movie_check_sql);
-	_customer_plan_check_statement = _customer_db.prepareStatement(_customer_plan_check_sql);
-	_customer_movie_rent_statement = _customer_db.prepareStatement(_customer_movie_rent_sql);
+        _customer_movie_rental_archive_statement = _customer_db.prepareStatement(_customer_movie_rental_archive_sql);
+        _customer_movie_return_statement = _customer_db.prepareStatement(_customer_movie_return_sql);
+        _customer_movie_check_statement = _customer_db.prepareStatement(_customer_movie_check_sql);
+        _customer_plan_check_statement = _customer_db.prepareStatement(_customer_plan_check_sql);
+        _customer_movie_rent_statement = _customer_db.prepareStatement(_customer_movie_rent_sql);
 	    
     }
 
@@ -292,19 +293,11 @@ public class Query {
     public void transaction_personal_data(int cid) throws Exception {
            /* println the customer's personal data: name, and plan number */
 
-        _customer_data_statement.clearParameters();
-        _customer_data_statement.setInt(1,cid);
-        ResultSet customer_set = _customer_data_statement.executeQuery();
-        if (customer_set.next()) {
-            System.out.println("\t\tCustomer: " + customer_set.getString(1)
-                    + " " + customer_set.getString(2));
-            System.out.println("\t\tPlan: " + customer_set.getString(3)
-                    + "   " + customer_set.getInt(4) + " movies maximum"
-                    + "   Fee $" + customer_set.getDouble(5));
-            System.out.println("\t\t " + helper_compute_remaining_rentals(cid)
-                    + " rentals available");
-        }
-        customer_set.close();
+        System.out.println( "Name: " + 
+                            helper_compute_customer_name(cid) + 
+                            " Open Rental slots: " + 
+                            helper_compute_remaining_rentals(cid)
+        );
     }
 
 
