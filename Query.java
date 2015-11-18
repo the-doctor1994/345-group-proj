@@ -89,6 +89,10 @@ public class Query {
 
     private String _customer_movie_rental_archive_sql = "INSERT INTO pastrentals VALUES (?,?);";
     private PreparedStatement _customer_movie_rental_archive_statement;
+   
+    private String _customer_data_sql = "SELECT x.fname, x.lname, y.pname, y.maxrent, y.fee "
+                     + "FROM accounts x, plans y WHERE x.aid = ? and x.pid = y.pid";
+    private PreparedStatement _customer_data_statement;   
 
     private String _customer_movie_return_sql = "DELETE FROM rentals WHERE aid=? AND mid=?;";
     private PreparedStatement _customer_movie_return_statement;
@@ -104,6 +108,18 @@ public class Query {
 
     private String _customer_change_plan_sql = "UPDATE accounts SET plan = ? WHERE id = ?";
     private PreparedStatement _customer_change_plan_statement;
+    
+    private String _list_plans_sql = "SELECT * FROM plans";
+    private PreparedStatement _list_plans_statement; 
+
+    private String _list_rentals_sql = "SELECT mid FROM rentals WHERE aid = ?";
+    private PreparedStatement _list_rentals_statement; 
+
+    private String _current_rental_sql = "SELECT COUNT(*) FROM rentals WHERE aid = ?";
+    private PreparedStatement _current_rental_statement; 
+
+    private String _update_plan_sql = "UPDATE accounts SET pid = ? WHERE aid = ?";
+    private PreparedStatement _update_plan_statement; 
 
     public Query() {
     }
