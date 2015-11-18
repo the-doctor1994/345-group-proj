@@ -70,18 +70,20 @@ public class Query {
     private String _rollback_transaction_sql = "ROLLBACK TRANSACTION";
     private PreparedStatement _rollback_transaction_statement;
 
-    private String _customer_movie_return_sql = "UPDATE MovieRentals SET cid=NULL, status='closed' WHERE cid=? AND mid=?;";
-    private PreparedStatement _customer_movie_return_statement;
+    //private String _customer_movie_return_sql = "UPDATE MovieRentals SET cid=NULL, status='closed' WHERE cid=? AND mid=?;";
+    //private PreparedStatement _customer_movie_return_statement;
 
-    private String _customer_movie_check_sql = "SELECT count(*) FROM MovieRentals WHERE cid = ? AND status = 'open';";
-    private PreparedStatement _customer_movie_check_statement;
+    //private String _customer_movie_check_sql = "SELECT count(*) FROM MovieRentals WHERE cid = ? AND status = 'open';";
+    //private PreparedStatement _customer_movie_check_statement;
 
-    private String _customer_plan_check_sql = "SELECT r.max_movies FROM RentalPlans r INNER JOIN Customers c on c.pid = r.pid WHERE c.cid = ?";
-    private PreparedStatement _customer_plan_check_statement;
+    //private String _customer_plan_check_sql = "SELECT r.max_movies FROM RentalPlans r INNER JOIN Customers c on c.pid = r.pid WHERE c.cid = ?";
+    //private PreparedStatement _customer_movie_check_statement;
 
-    private String _customer_movie_rent_sql = "INSERT INTO MovieRentals VALUES (?,?,'open')";
-    private PreparedStatement _customer_movie_rent_statement;
+    //private String _customer_movie_rent_sql = "INSERT INTO MovieRentals VALUES (?,?,'open')";
+    //private PreparedStatement _customer_movie_rent_statement;
 
+    private String _customer_change_plan_sql = "UPDATE accounts SET plan = ? WHERE id = ?";
+    private PreparedStatement _customer_change_plan_statement;
 
     public Query() {
     }
@@ -127,10 +129,8 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
-	   _customer_movie_return_statement = _imdb.prepareStatement(_customer_movie_return_sql);
-	   _customer_plan_check_statement = _imdb.prepareStatement(_customer_plan_check_sql);
-	   _customer_movie_check_statement = _imdb.prepareStatement(_customer_movie_check_sql);
-	   _customer_movie_rent_statement = _imdb.prepareStatement(_customer_movie_rent_sql);
+	   //_customer_movie_return_statement = _imdb.prepareStatement(_customer_movie_return_sql);
+	   //_customer_movie_rent_statement = _imdb.prepareStatement(_customer_movie_rent_sql);
        _actor_mid_statement = _imdb.prepareStatement(_actor_mid_sql);
        _renter_mid_statement = _customer_db.prepareStatement(_renter_mid_sql);
        
@@ -148,6 +148,7 @@ public class Query {
         _plan_maxrent_statement = _customer_db.prepareStatement(_plan_maxrent_sql);
         _current_rentals_statement = _customer_db.prepareStatement(_current_rentals_sql);
         _all_plans_statement = _customer_db.prepareStatement(_all_plans_sql);
+        _customer_change_plan_statement = _customer_db.prepareStatement(_customer_change_plan_sql);
     }
 
 
@@ -180,9 +181,15 @@ public class Query {
         return (info_set.getString(1) + " " + info_set.getString(2));
     }
 
-    public boolean helper_check_plan(int plan_id) throws Exception {
+    public boolean helper_check_plan(String plan_id) throws Exception {
         /* is plan_id a valid plan id ?  you have to figure out */
-        return true;
+        _all_plans_statement.clearParameters();
+        ResultSet plans_set = _all_plans_statement.executeQuery();
+        boolean flag = false;
+        while(plans_set.next()){
+            if(plans_set.getString(1).equals(plan_id)) flag = true;
+        }
+        return flag;
     }
 
     public boolean helper_check_movie(int mid) throws Exception {
@@ -294,9 +301,31 @@ public class Query {
         System.out.println();
     }
 
-    public void transaction_choose_plan(int cid, int pid) throws Exception {
-        /* updates the customer's plan to pid: UPDATE customers SET plid = pid */
+    public void transaction_choose_plan(int cid, String pid) throws Exception {
+        /* updates the customer's plan to pid: UPDATE accounts SET plan = ? WHERE id = ? */
         /* remember to enforce consistency ! */
+        _begin_transaction_read_write_statement.executeQuery();
+        int required_min = 3;
+        _all_plans_statement.clearParameters();
+        ResultSet plans_set = _all_plans_statement.executeQuery();
+        while(plans_set.next()){
+            if(plans_set.getString(1).equals(pid)) required_min = plans_set.getInt(3);
+        }
+        
+        int out = 0;
+        _current_rentals_statement.clearParameters();
+        _current_rentals_statement.setInt(1,cid);
+        ResultSet rentals_num_set = _current_rentals_statement.executeQuery();
+        if (rentals_num_set.next()) out = rentals_num_set.getInt(1);
+        
+        if(out <= required_min){
+            _customer_change_plan_statement.clearParameters();
+            _customer_change_plan_statement.setString(1,pid);
+            _customer_change_plan_statement.setInt(2,cid);
+            _customer_change_plan_statement.executeQuery();
+            _commit_transaction_statement.executeQuery();
+        }
+        else _rollback_transaction_statement.executeQuery();
     }
 
     public void transaction_list_plans() throws Exception {
@@ -316,44 +345,44 @@ public class Query {
     }
     
     public void transaction_list_user_rentals(int cid) throws Exception {
-        /* println all movies rented by the current user*/
+        /* TODO: println all movies rented by the current user*/
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
-	if(helper_check_movie(mid)){
-	    _begin_transaction_read_write_statement.execute();
-	    _customer_movie_check_statement.clearParameters();
-	    _customer_movie_check_statement.setInt(1, cid);
-	    ResultSet check_movies = _customer_movie_check_statement.executeQuery();
-	    check_movies.first();
-	    int rented = check_movies.getInt(1);
-	    _customer_plan_check_statement.clearParameters();
-	    _customer_plan_check_statement.setInt(1, cid);
-	    ResultSet check_plan = _customer_plan_check_statement.executeQuery();
-	    check_plan.first();
-	    int max_movies = check_plan.getInt(1);
-	    if(rented < max_movies){
-		_customer_movie_rent_statement.clearParameters();
-		_customer_movie_rent_statement.setInt(1,mid);
-		_customer_movie_rent_statement.setInt(2,cid);
-		_customer_movie_rent_statement.execute();
-		_commit_transaction_statement.execute();
-	    }
-	    else{
-		_rollback_transaction_statement.execute();
-	    }
-	    
-	}
+        /*if(helper_check_movie(mid)){
+            _begin_transaction_read_write_statement.execute();
+            _customer_movie_check_statement.clearParameters();
+            _customer_movie_check_statement.setInt(1, cid);
+            ResultSet check_movies = _customer_movie_check_statement.executeQuery();
+            check_movies.first();
+            int rented = check_movies.getInt(1);
+            _customer_plan_check_statement.clearParameters();
+            _customer_plan_check_statement.setInt(1, cid);
+            ResultSet check_plan = _customer_plan_check_statement.executeQuery();
+            check_plan.first();
+            int max_movies = check_plan.getInt(1);
+            if(rented < max_movies){
+            _customer_movie_rent_statement.clearParameters();
+            _customer_movie_rent_statement.setInt(1,mid);
+            _customer_movie_rent_statement.setInt(2,cid);
+            _customer_movie_rent_statement.execute();
+            _commit_transaction_statement.execute();
+            }
+            else{
+            _rollback_transaction_statement.execute();
+            }
+            
+        }*/
     }
     public void transaction_return(int cid, int mid) throws Exception {
-	if(helper_check_movie(mid) && (helper_who_has_this_movie(mid) == cid)){
-	    _begin_transaction_read_write_statement.execute();
-	    _customer_movie_return_statement.clearParameters();
-	    _customer_movie_return_statement.setInt(1, cid);
-	    _customer_movie_return_statement.setInt(2, mid);
-	    _customer_movie_return_statement.execute();
-	    _commit_transaction_statement.execute();
-	}
+        /*if(helper_check_movie(mid) && (helper_who_has_this_movie(mid) == cid)){
+            _begin_transaction_read_write_statement.execute();
+            _customer_movie_return_statement.clearParameters();
+            _customer_movie_return_statement.setInt(1, cid);
+            _customer_movie_return_statement.setInt(2, mid);
+            _customer_movie_return_statement.execute();
+            _commit_transaction_statement.execute();
+        }*/
     }
 
     public void transaction_fast_search(int cid, String movie_title)
@@ -369,20 +398,20 @@ public class Query {
         ResultSet movie_set = _search_statement.executeQuery();
 
         /* retrieve directors */
-        _director_fast_statement.clearParameters();
+        /*_director_fast_statement.clearParameters();
         _director_fast_statement.setString(1, '%' + movie_title + '%');
-        ResultSet director_set = _director_fast_statement.executeQuery();
+        ResultSet director_set = _director_fast_statement.executeQuery();*/
 
  
         /* retrieve the actors */
-        _actor_fast_statement.clearParameters();
+        /*_actor_fast_statement.clearParameters();
         _actor_fast_statement.setString(1, '%' + movie_title + '%');
-        ResultSet actor_set = _actor_fast_statement.executeQuery();
+        ResultSet actor_set = _actor_fast_statement.executeQuery();*/
 
-        director_set.next();
-        actor_set.next();
+        /*director_set.next();
+        actor_set.next();*/
 
-        while (movie_set.next()) {
+        /*while (movie_set.next()) {
             int mid = movie_set.getInt(1);
             System.out.println("ID: " + mid + " NAME: "
                     + movie_set.getString(2) + " YEAR: "
@@ -411,9 +440,6 @@ public class Query {
         movie_set.close();
         director_set.close();
         actor_set.close();
-        System.out.println();
+        System.out.println();*/
     }
-
-}
-
 }

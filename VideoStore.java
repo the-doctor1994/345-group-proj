@@ -54,7 +54,7 @@ public class VideoStore {
                 /* choose a new rental plan, or, if none is given, then list all available plans */
                 if (st.hasMoreTokens()) {
                     try{
-                        int plan_id = st.nextToken();
+                        String plan_id = st.nextToken();
                         /* need to check that plan_id is a valid plan id in the database, */
                         /* if yes, then set the new plan for the current customer */
                         /* if not, then list all available plans */
