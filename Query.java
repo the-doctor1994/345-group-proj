@@ -82,17 +82,20 @@ public class Query {
     private String _rollback_transaction_sql = "ROLLBACK TRANSACTION";
     private PreparedStatement _rollback_transaction_statement;
 
-    //private String _customer_movie_return_sql = "UPDATE MovieRentals SET cid=NULL, status='closed' WHERE cid=? AND mid=?;";
-    //private PreparedStatement _customer_movie_return_statement;
+    private String _customer_movie_rental_archive_sql = "INSERT INTO pastrentals VALUES (?,?);";
+    private PreparedStatement _customer_movie_rental_archive_statement;
 
-    //private String _customer_movie_check_sql = "SELECT count(*) FROM MovieRentals WHERE cid = ? AND status = 'open';";
-    //private PreparedStatement _customer_movie_check_statement;
+    private String _customer_movie_return_sql = "DELETE FROM rentals WHERE aid=? AND mid=?;";
+    private PreparedStatement _customer_movie_return_statement;
 
-    //private String _customer_plan_check_sql = "SELECT r.max_movies FROM RentalPlans r INNER JOIN Customers c on c.pid = r.pid WHERE c.cid = ?";
-    //private PreparedStatement _customer_movie_check_statement;
+    private String _customer_movie_check_sql = "SELECT count(*) FROM rentals WHERE aid = ?;";
+    private PreparedStatement _customer_movie_check_statement;
 
-    //private String _customer_movie_rent_sql = "INSERT INTO MovieRentals VALUES (?,?,'open')";
-    //private PreparedStatement _customer_movie_rent_statement;
+    private String _customer_plan_check_sql = "SELECT p.max_movies FROM plans p INNER JOIN accounts a on a.plan = p.plan WHERE a.aid = ?";
+    private PreparedStatement _customer_plan_check_statement;
+
+    private String _customer_movie_rent_sql = "INSERT INTO rentals VALUES (?,?)";
+    private PreparedStatement _customer_movie_rent_statement;
 
     private String _customer_change_plan_sql = "UPDATE accounts SET plan = ? WHERE id = ?";
     private PreparedStatement _customer_change_plan_statement;
@@ -161,6 +164,12 @@ public class Query {
         _current_rentals_statement = _customer_db.prepareStatement(_current_rentals_sql);
         _all_plans_statement = _customer_db.prepareStatement(_all_plans_sql);
         _customer_change_plan_statement = _customer_db.prepareStatement(_customer_change_plan_sql);
+	_customer_movie_rental_archive_statement = _customer_db.prepareStatement(_customer_movie_rental_archive_sql);
+	_customer_movie_return_statement = _customer_db.prepareStatement(_customer_movie_return_sql);
+	_customer_movie_check_statement = _customer_db.prepareStatement(_customer_movie_check_sql);
+	_customer_plan_check_statement = _customer_db.prepareStatement(_customer_plan_check_sql);
+	_customer_movie_rent_statement = _customer_db.prepareStatement(_customer_movie_rent_sql);
+	    
     }
 
 
@@ -408,7 +417,7 @@ public class Query {
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
-        /*if(helper_check_movie(mid)){
+        if(helper_check_movie(mid)){
             _begin_transaction_read_write_statement.execute();
             _customer_movie_check_statement.clearParameters();
             _customer_movie_check_statement.setInt(1, cid);
@@ -428,20 +437,23 @@ public class Query {
             _commit_transaction_statement.execute();
             }
             else{
-            _rollback_transaction_statement.execute();
+		_rollback_transaction_statement.execute();
             }
-            
-        }*/
+        }
     }
     public void transaction_return(int cid, int mid) throws Exception {
-        /*if(helper_check_movie(mid) && (helper_who_has_this_movie(mid) == cid)){
+        if(helper_check_movie(mid) && (helper_who_has_this_movie(mid) == cid)){
             _begin_transaction_read_write_statement.execute();
+	    _customer_movie_rental_archive_statement.clearParameters();
+	    _customer_movie_rental_archive_statement.setInt(1, cid);
+	    _customer_movie_rental_archive_statement.setInt(2, mid);
+	    _customer_movie_rental_archive_statement.execute();
             _customer_movie_return_statement.clearParameters();
             _customer_movie_return_statement.setInt(1, cid);
             _customer_movie_return_statement.setInt(2, mid);
             _customer_movie_return_statement.execute();
             _commit_transaction_statement.execute();
-        }*/
+        }
     }
 
     public void transaction_fast_search(int cid, String movie_title)
