@@ -195,6 +195,8 @@ public class Query {
         int max = maxrent_set.getInt(1);
         int out = 0;
         if (rentals_num_set.next()) out = rentals_num_set.getInt(1);
+        maxrent_set.close();
+        rentals_num_set.close();
         return (max - out);
     }
 
@@ -204,7 +206,9 @@ public class Query {
         _customer_info_statement.setInt(1,cid);
         ResultSet info_set = _customer_info_statement.executeQuery();
         info_set.next();
-        return (info_set.getString(1) + " " + info_set.getString(2));
+        String name = info_set.getString(1) + " " + info_set.getString(2);
+        info_set.close();
+        return (name);
     }
 
     public boolean helper_check_plan(String plan_id) throws Exception {
@@ -215,6 +219,7 @@ public class Query {
         while(plans_set.next()){
             if(plans_set.getString(1).equals(plan_id)) flag = true;
         }
+        plans_set.close();
         return flag;
     }
 
@@ -264,9 +269,8 @@ public class Query {
         ResultSet cid_set = _customer_login_statement.executeQuery();
         if (cid_set.next()) cid = cid_set.getInt(1);
         else cid = -1;
+        cid_set.close();
         return(cid);
-         
-        //return (55);
     }
 
     public void transaction_personal_data(int cid) throws Exception {
@@ -285,8 +289,6 @@ public class Query {
                     + " rentals available");
         }
         customer_set.close();
-        System.out.println();
-        
     }
 
 
@@ -367,12 +369,14 @@ public class Query {
         while(plans_set.next()){
             if(plans_set.getString(1).equals(pid)) required_min = plans_set.getInt(3);
         }
+        plans_set.close();
         
         int out = 0;
         _current_rentals_statement.clearParameters();
         _current_rentals_statement.setInt(1,cid);
         ResultSet rentals_num_set = _current_rentals_statement.executeQuery();
         if (rentals_num_set.next()) out = rentals_num_set.getInt(1);
+        rentals_num_set.close();
         
         if(out <= required_min){
             _customer_change_plan_statement.clearParameters();
@@ -382,6 +386,7 @@ public class Query {
             _commit_transaction_statement.executeQuery();
         }
         else _rollback_transaction_statement.executeQuery();
+        
     }
 
     public void transaction_list_plans() throws Exception {
@@ -398,6 +403,7 @@ public class Query {
                 plans_set.getInt(3)
             );
         }
+        plans_set.close();
     }
     
     public void transaction_list_user_rentals(int cid) throws Exception {
