@@ -46,8 +46,17 @@ public class Query {
 
     /* uncomment, and edit, after your create your own customer database */
     
-    private String _customer_login_sql = "SELECT * FROM accounts WHERE username = ? and password = ?";
+    private String _customer_login_sql = "SELECT * FROM accounts WHERE username = ? AND password = ?";
     private PreparedStatement _customer_login_statement;
+    
+    private String _customer_info_sql = "SELECT fname, lname FROM accounts WHERE id = ?";
+    private PreparedStatement _customer_info_statement;
+
+    private String _plan_maxrent_sql = "SELECT maxrent FROM plans p, accounts a WHERE p.pname = a.plan AND a.id = ?";
+    private PreparedStatement _plan_maxrent_statement;
+
+    private String _current_rentals_sql = "SELECT count(*) from rentals WHERE aid = ?";
+    private PreparedStatement _current_rentals_statement;
 
     private String _begin_transaction_read_write_sql = "BEGIN TRANSACTION READ WRITE";
     private PreparedStatement _begin_transaction_read_write_statement;
@@ -115,6 +124,10 @@ public class Query {
 
         /* add here more prepare statements for all the other queries you need */
         /* . . . . . . */
+        
+        _customer_info_statement = _customer_db.prepareStatement(_customer_info_sql);
+        _plan_maxrent_statement = _customer_db.prepareStatement(_plan_maxrent_sql);
+        _current_rentals_statement = _customer_db.prepareStatement(_current_rentals_sql);
     }
 
 
@@ -125,13 +138,23 @@ public class Query {
         /* how many movies can she/he still rent ? */
         /* you have to compute and return the difference between the customer's plan
            and the count of oustanding rentals */
-        return (99);
+        _plan_maxrent_statement.clearParameters();
+        _plan_maxrent_statement.setInt(1,cid);   
+        ResultSet maxrent_set = _plan_maxrent_statement.executeQuery();
+        _current_rentals_statement.clearParameters();
+        _current_rentals_statement.setInt(1,cid);
+        ResultSet rentals_num_set = _current_rentals_statement.executeQuery();
+        int max = maxrent_set.getInt(1);
+        int out = rentals_num_set.getInt(1);
+        return (max - out);
     }
 
     public String helper_compute_customer_name(int cid) throws Exception {
         /* you find  the first + last name of the current customer */
-        return ("JoeFirstName" + " " + "JoeLastName");
-
+        _customer_info_statement.clearParameters();
+        _customer_info_statement.setInt(1,cid);
+        ResultSet info_set = _customer_info_statement.executeQuery();
+        return (info_set.getString(1) + " " + info_set.getString(2));
     }
 
     public boolean helper_check_plan(int plan_id) throws Exception {
@@ -162,7 +185,7 @@ public class Query {
         _customer_login_statement.setString(1,username);
         _customer_login_statement.setString(2,password);
         ResultSet cid_set = _customer_login_statement.executeQuery();
-        if (cid_set.next()) cid = 1;
+        if (cid_set.next()) cid = cid_set.getInt(1);
         else cid = -1;
         return(cid);
          
@@ -171,6 +194,13 @@ public class Query {
 
     public void transaction_personal_data(int cid) throws Exception {
         /* println the customer's personal data: name, and plan number */
+        
+        System.out.println( "Name: " + 
+                            helper_compute_customer_name(cid) + 
+                            " Open Rental slots: " + 
+                            helper_compute_remaining_rentals(cid)
+        );
+        
     }
 
 
