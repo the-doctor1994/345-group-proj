@@ -57,6 +57,11 @@ public class Query {
     private PreparedStatement _actor_fast_statement;    
 
     /* uncomment, and edit, after your create your own customer database */
+    private String _movie_sql = "SELECT * FROM movie WHERE id = ?";
+    private PreparedStatement _movie_statement;
+
+    private String _who_has_this_movie_sql = "SELECT aid FROM rentals WHERE mid = ?";
+    private PreparedStatement _who_has_this_movie_statement;    
    
     private String _customer_login_sql = "SELECT * FROM accounts WHERE username = ? AND password = ?";
     private PreparedStatement _customer_login_statement;
