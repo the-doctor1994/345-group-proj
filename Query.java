@@ -97,9 +97,6 @@ public class Query {
     private String _customer_movie_return_sql = "DELETE FROM rentals WHERE aid=? AND mid=?;";
     private PreparedStatement _customer_movie_return_statement;
 
-    private String _customer_movie_check_sql = "SELECT count(*) FROM rentals WHERE aid = ?;";
-    private PreparedStatement _customer_movie_check_statement;
-
     private String _customer_plan_check_sql = "SELECT p.max_movies FROM plans p INNER JOIN accounts a on a.plan = p.plan WHERE a.aid = ?";
     private PreparedStatement _customer_plan_check_statement;
 
@@ -113,10 +110,7 @@ public class Query {
     private PreparedStatement _list_plans_statement; 
 
     private String _list_rentals_sql = "SELECT mid FROM rentals WHERE aid = ?";
-    private PreparedStatement _list_rentals_statement; 
-
-    private String _current_rental_sql = "SELECT COUNT(*) FROM rentals WHERE aid = ?";
-    private PreparedStatement _current_rental_statement; 
+    private PreparedStatement _list_rentals_statement;
 
     private String _update_plan_sql = "UPDATE accounts SET pid = ? WHERE aid = ?";
     private PreparedStatement _update_plan_statement; 
@@ -166,8 +160,6 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
-	   //_customer_movie_return_statement = _imdb.prepareStatement(_customer_movie_return_sql);
-	   //_customer_movie_rent_statement = _imdb.prepareStatement(_customer_movie_rent_sql);
        _actor_mid_statement = _imdb.prepareStatement(_actor_mid_sql);
        _renter_mid_statement = _customer_db.prepareStatement(_renter_mid_sql);
        
@@ -189,9 +181,11 @@ public class Query {
         _customer_change_plan_statement = _customer_db.prepareStatement(_customer_change_plan_sql);
         _customer_movie_rental_archive_statement = _customer_db.prepareStatement(_customer_movie_rental_archive_sql);
         _customer_movie_return_statement = _customer_db.prepareStatement(_customer_movie_return_sql);
-        _customer_movie_check_statement = _customer_db.prepareStatement(_customer_movie_check_sql);
         _customer_plan_check_statement = _customer_db.prepareStatement(_customer_plan_check_sql);
         _customer_movie_rent_statement = _customer_db.prepareStatement(_customer_movie_rent_sql);
+        _movie_statement = _customer_db.prepareStatement(_movie_sql);
+        _list_rentals_statement = _customer_db.prepareStatement(_list_rentals_sql);
+        _who_has_this_movie_statement = _customer_db.prepareStatement(_who_has_this_movie_sql);
 	    
     }
 
@@ -243,7 +237,6 @@ public class Query {
 
     public boolean helper_check_movie(int mid) throws Exception {
         /* is mid a valid movie id ? you have to figure out  */
-         /* is plan_id a valid plan id ?  you have to figure out */
 
         boolean valid;
 
@@ -265,10 +258,12 @@ public class Query {
         _who_has_this_movie_statement.clearParameters();
         _who_has_this_movie_statement.setInt(1,mid);
         ResultSet who_set = _who_has_this_movie_statement.executeQuery();
-        if (who_set.next()) cid = who_set.getInt(1);
+        if (who_set.next()){
+            cid = who_set.getInt(1);
+            System.out.println("Customer: " + cid);
+        } 
         else cid = -1;
         who_set.close();
-        System.out.println("Customer: " + cid);
         return (cid);
     }
 
@@ -394,9 +389,10 @@ public class Query {
             _customer_change_plan_statement.setInt(2,cid);
             _customer_change_plan_statement.executeUpdate();
             _commit_transaction_statement.executeUpdate();
+            System.out.println("plan changed to " + pid);
         }
         else _rollback_transaction_statement.executeUpdate();
-        
+        System.out.println("You have to many movies rented! \nReturn some and try again.");
     }
 
     public void transaction_list_plans() throws Exception {
@@ -417,7 +413,7 @@ public class Query {
     }
     
     public void transaction_list_user_rentals(int cid) throws Exception {
-        /* TODO: println all movies rented by the current user*/
+        /* prints all movies rented by the current user*/
         
         _list_rentals_statement.clearParameters();
         _list_rentals_statement.setInt(1,cid);
@@ -427,48 +423,46 @@ public class Query {
             int mid = rentals_set.getInt(1);
             _movie_statement.clearParameters();
             _movie_statement.setInt(1,mid);
+            
             ResultSet movie_set = _movie_statement.executeQuery();
-            System.out.println(" NAME: "
-                    + movie_set.getString(2) + "  YEAR: "
-                    + movie_set.getString(3));
+                movie_set.next();
+                System.out.println(
+                    "ID: " +
+                    movie_set.getString(1) +
+                    " NAME: " +
+                    movie_set.getString(2) +
+                    " YEAR: " +
+                    movie_set.getString(3)
+                );
             movie_set.close();
         }
         rentals_set.close();
-        System.out.println();
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
-        if(helper_check_movie(mid)){
-            _begin_transaction_read_write_statement.execute();
-            _customer_movie_check_statement.clearParameters();
-            _customer_movie_check_statement.setInt(1, cid);
-            ResultSet check_movies = _customer_movie_check_statement.executeQuery();
-            check_movies.first();
-            int rented = check_movies.getInt(1);
-            _customer_plan_check_statement.clearParameters();
-            _customer_plan_check_statement.setInt(1, cid);
-            ResultSet check_plan = _customer_plan_check_statement.executeQuery();
-            check_plan.first();
-            int max_movies = check_plan.getInt(1);
-            if(rented < max_movies){
-		_customer_movie_rent_statement.clearParameters();
-		_customer_movie_rent_statement.setInt(1,mid);
-		_customer_movie_rent_statement.setInt(2,cid);
-		_customer_movie_rent_statement.execute();
-		_commit_transaction_statement.execute();
+        if(helper_compute_remaining_rentals(cid) > 0){ //check that user has open rental slot
+            if(helper_check_movie(mid)){ //check that movie is valid
+                if(helper_who_has_this_movie(mid) == -1){ //check if movie is available to rent
+                    _customer_movie_rent_statement.clearParameters();
+                    _customer_movie_rent_statement.setInt(1,cid);
+                    _customer_movie_rent_statement.setInt(2,mid);
+                    _customer_movie_rent_statement.execute();
+                    _commit_transaction_statement.execute();
+                    System.out.println("Movie rented. You have " + helper_compute_remaining_rentals(cid) + " rentals left");
+                }
+                else System.out.println("Movie is already rented out.");
             }
-            else{
-		_rollback_transaction_statement.execute();
-            }
+            else System.out.println("Please enter a valid movie ID number.");
         }
+        else System.out.println("You cannot rent any more movies. \nPlease return a movie before renting another one");
     }
     public void transaction_return(int cid, int mid) throws Exception {
         if(helper_check_movie(mid) && (helper_who_has_this_movie(mid) == cid)){
             _begin_transaction_read_write_statement.execute();
-	    _customer_movie_rental_archive_statement.clearParameters();
-	    _customer_movie_rental_archive_statement.setInt(1, cid);
-	    _customer_movie_rental_archive_statement.setInt(2, mid);
-	    _customer_movie_rental_archive_statement.execute();
+            _customer_movie_rental_archive_statement.clearParameters();
+            _customer_movie_rental_archive_statement.setInt(1, cid);
+            _customer_movie_rental_archive_statement.setInt(2, mid);
+            _customer_movie_rental_archive_statement.execute();
             _customer_movie_return_statement.clearParameters();
             _customer_movie_return_statement.setInt(1, cid);
             _customer_movie_return_statement.setInt(2, mid);
